@@ -365,7 +365,7 @@ IBM Granite was chosen for its **enterprise-grade reliability**, **responsible A
 ## 👨‍💻 Author
 
 **Deepanshu Meena**
-B.Tech Software Engineering, Delhi Technological University (DTU) · Roll No: 23/SE/048/052
+B.Tech Software Engineering, Delhi Technological University (DTU)
 
 [![Email](https://img.shields.io/badge/Email-deepanshumeena545@gmail.com-red?style=flat-square&logo=gmail)](mailto:deepanshumeena545@gmail.com)
 [![LinkedIn](https://img.shields.io/badge/LinkedIn-Connect-blue?style=flat-square&logo=linkedin)](https://linkedin.com/in/YOUR_PROFILE)
