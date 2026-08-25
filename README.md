@@ -201,8 +201,6 @@ Every key technical choice is documented with reasoning and trade-offs.
 
 ## 🤝 Responsible AI Considerations
 
-This section is mandatory per the 1M1B × IBM SkillsBuild internship guidelines (Section 7).
-
 ### Fairness
 - GreenMind uses **Wikipedia** (open, community-maintained, globally neutral) and **DuckDuckGo** (no personalisation, no filter bubbles) as knowledge sources
 - No demographic data, location data, or user profiling is involved at any stage
@@ -383,7 +381,7 @@ IBM Granite was chosen for its **enterprise-grade reliability**, **responsible A
 ## 👨‍💻 Author
 
 **Deepanshu Meena**
-B.Tech Software Engineering, Delhi Technological University (DTU) · Roll No: 23/SE/048/052
+B.Tech Software Engineering, Delhi Technological University (DTU)
 
 [![Email](https://img.shields.io/badge/Email-deepanshumeena545@gmail.com-red?style=flat-square&logo=gmail)](mailto:deepanshumeena545@gmail.com)
 [![LinkedIn](https://img.shields.io/badge/LinkedIn-Connect-blue?style=flat-square&logo=linkedin)](https://linkedin.com/in/YOUR_PROFILE)
