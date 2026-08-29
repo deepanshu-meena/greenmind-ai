@@ -1,0 +1,14 @@
+services:
+  greenmind:
+    build: .
+    ports:
+      - "8501:8501"
+    environment:
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - HF_TOKEN=${HF_TOKEN}
+    volumes:
+      - greenmind-data:/app/data
+    restart: unless-stopped
+
+volumes:
+  greenmind-data:

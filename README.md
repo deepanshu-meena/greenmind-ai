@@ -9,6 +9,10 @@
 [![ChromaDB](https://img.shields.io/badge/ChromaDB-RAG-orange?style=flat-square)](https://chromadb.ai)
 [![AICTE](https://img.shields.io/badge/AICTE-Certified%20Internship-green?style=flat-square)](https://internship.aicte-india.org)
 [![SDG 13](https://img.shields.io/badge/Primary%20SDG-13%20Climate%20Action-3F7E44?style=flat-square)](https://sdgs.un.org/goals/goal13)
+[![CI](https://img.shields.io/github/actions/workflow/status/deepanshu-meena/greenmind-ai/ci.yml?branch=main&style=flat-square&label=CI)](.github/workflows/ci.yml)
+[![Tests](https://img.shields.io/badge/tests-48%20passing-brightgreen?style=flat-square)](tests/)
+[![Coverage](https://img.shields.io/badge/coverage-99%25-brightgreen?style=flat-square)](tests/)
+[![Docker](https://img.shields.io/badge/Docker-ready-2496ED?style=flat-square&logo=docker)](Dockerfile)
 
 **An AI-powered sustainability intelligence assistant that answers any climate or SDG-related question by combining live web search with a scientific RAG knowledge base — generating a structured, downloadable action report in under 60 seconds.**
 
@@ -30,6 +34,7 @@
 - [Technical Decisions](#-technical-decisions)
 - [Responsible AI Considerations](#-responsible-ai-considerations)
 - [Tech Stack](#-tech-stack)
+- [Testing, Containerization & CI/CD](#-testing-containerization--cicd)
 - [Project Structure](#-project-structure)
 - [Setup & Installation](#-setup--installation)
 - [How to Use](#-how-to-use)
@@ -124,11 +129,14 @@ GreenMind AI directly addresses SDG 13 by making climate science, policy data, a
          │  17 SDG Wikipedia  │
          │  Articles Embedded │
          │  Gemini Embeddings │
-         │  text-embedding-004│
+         │ gemini-embedding-001│
          └────────────────────┘
 
-Primary LLM : IBM Granite 3.1 8B (via HuggingFace)
-Fallback LLM: Gemini 1.5 Flash
+Primary LLM : IBM Granite 3.1 8B (via HuggingFace Inference Providers)
+Fallback LLM: Gemini 3.7 Flash, auto-switching down through 3.6 Flash →
+              3.5 Flash-Lite → 3.1 Flash-Lite → 2.5 Flash → gemini-flash-latest
+              on any error, so no single retired/rate-limited model can
+              break the app
 ```
 
 ---
@@ -144,7 +152,7 @@ Fallback LLM: Gemini 1.5 Flash
 | 🤖 **Agents in Pipeline** | **4 specialised agents** |
 | 📋 **Report Sections Generated** | **6 structured sections** |
 | ⏱️ **Average Pipeline Completion** | **~45–60 seconds** |
-| 📐 **Embedding Dimensions** | **768-dim** (Gemini text-embedding-004) |
+| 📐 **Embedding Dimensions** | **768-dim** (Gemini `gemini-embedding-001`, truncated via Matryoshka from its native 3072-dim) |
 | 💾 **KB Rebuild Required** | **Once** (persistent ChromaDB, instant on reload) |
 
 ---
@@ -158,7 +166,7 @@ Fallback LLM: Gemini 1.5 Flash
 - **Output:** Structured summary of current real-world state (≤300 words)
 
 ### Agent 2 — 📚 RAG Knowledge Agent
-- Embeds user query using **Gemini text-embedding-004** (768-dim vector)
+- Embeds user query using **Gemini `gemini-embedding-001`** (768-dim vector, task-typed as `RETRIEVAL_QUERY`)
 - Searches **ChromaDB** — retrieves Top 4 semantically relevant chunks from 17 SDG articles
 - IBM Granite synthesises: scientific consensus, SDG targets, UN data, key metrics
 - **Output:** Evidence-based scientific perspective grounded in SDG knowledge (≤300 words)
@@ -187,17 +195,16 @@ Every key technical choice is documented with reasoning and trade-offs.
 | Decision | Chosen | Key Reason |
 |---|---|---|
 | Primary LLM | IBM Granite 3.1 8B | Required by internship; responsible AI; enterprise-grade |
+| Fallback LLM | Gemini 3.7 Flash → 3.6 Flash → 3.5 Flash-Lite → 3.1 Flash-Lite → 2.5 Flash → `gemini-flash-latest` | Auto-switches on any error so a single retired/rate-limited model never breaks the app |
 | Vector Store | ChromaDB | Free, local, persistent, no API key needed |
-| Embedding Model | Gemini text-embedding-004 | 768-dim, high quality, already in stack |
+| Embedding Model | Gemini `gemini-embedding-001` | Successor to the retired `text-embedding-004`; 768-dim (truncated), high quality, already in stack |
 | Knowledge Source | Wikipedia API | Free, public, comprehensive SDG coverage |
-| Web Search | DuckDuckGo | No API key required, privacy-first |
+| Web Search | DuckDuckGo (`ddgs` package) | No API key required, privacy-first |
 | UI Framework | Streamlit | Python-native, rapid ML app deployment |
 
 ---
 
 ## 🤝 Responsible AI Considerations
-
-This section is mandatory per the 1M1B × IBM SkillsBuild internship guidelines (Section 7).
 
 ### Fairness
 - GreenMind uses **Wikipedia** (open, community-maintained, globally neutral) and **DuckDuckGo** (no personalisation, no filter bubbles) as knowledge sources
@@ -208,6 +215,7 @@ This section is mandatory per the 1M1B × IBM SkillsBuild internship guidelines 
 - All **4 agent outputs are visible and expandable** in the Streamlit UI — users can inspect exactly how the final report was constructed at every step
 - The system explicitly shows: which web sources were found, which RAG chunks were retrieved, what the analysis concluded — before generating the final report
 - IBM Granite is the primary model; the UI indicates when Gemini fallback is used instead
+- **The downloadable report is self-contained**: every `.md` export ends with a "Sources & Report Provenance" section listing the live web URLs and SDG Wikipedia articles actually retrieved for that query, plus a generation timestamp and which model produced it — so the report stands on its own outside the app, not just inside the expandable UI panels
 
 ### Ethics
 - No harmful, discriminatory, or misleading content is generated — IBM Granite's responsible AI guardrails are active
@@ -226,14 +234,63 @@ This section is mandatory per the 1M1B × IBM SkillsBuild internship guidelines 
 
 | Layer | Technology | Version |
 |---|---|---|
-| Primary LLM | IBM Granite 3.1 8B Instruct (HuggingFace) | granite-3.1-8b-instruct |
-| Fallback LLM | Google Gemini 1.5 Flash | gemini-1.5-flash |
-| Embeddings | Gemini text-embedding-004 | 768-dim vectors |
+| Primary LLM | IBM Granite 3.1 8B Instruct (HuggingFace Inference Providers) | granite-3.1-8b-instruct |
+| Fallback LLM | Google Gemini, newest-first with automatic fallback | gemini-3.7-flash → gemini-3.6-flash → gemini-3.5-flash-lite → gemini-3.1-flash-lite → gemini-2.5-flash → gemini-flash-latest |
+| SDK | Google Gen AI SDK (`google-genai`) | ≥ 1.20.0 — the old `google-generativeai` package is deprecated |
+| Embeddings | Gemini `gemini-embedding-001` | 768-dim vectors (Matryoshka-truncated from 3072) |
 | Vector Store | ChromaDB (Persistent) | ≥ 0.5.0 |
 | Knowledge Source | Wikipedia REST API | Public, free |
-| Web Search | DuckDuckGo Search | No key required |
-| UI | Streamlit | ≥ 1.28.0 |
+| Web Search | DuckDuckGo (`ddgs` package) | No key required |
+| UI | Streamlit | ≥ 1.38.0 |
 | Language | Python | 3.10+ |
+
+### ⚠️ Troubleshooting: "models/gemini-... is not found for API version v1beta"
+
+Google frequently retires Gemini model IDs (all `gemini-1.5-*` and
+`gemini-2.0-*` models are already shut down as of mid-2026). If this
+error ever comes back, it means Google retired every model currently
+listed in `GEMINI_FLASH_CANDIDATES` in `config.py`. Fix: open
+`config.py`, check the current model list at
+[ai.google.dev/gemini-api/docs/models](https://ai.google.dev/gemini-api/docs/models),
+and add the new model ID to the **front** of the `GEMINI_FLASH_CANDIDATES`
+list. No other code changes are needed — `agents.py` will pick it up
+automatically.
+
+---
+
+## 🧪 Testing, Containerization & CI/CD
+
+### Test suite
+The four core modules (`orchestrator.py`, `agents.py`, `knowledge_base.py`, `web_search.py`, `config.py`) are covered by **48 unit tests with 99% line coverage**, all fully mocked — no real API calls, no cost, runs offline in under 5 seconds. The suite specifically targets the pipeline's branching/fallback logic, since that's where real bugs live:
+
+- **Granite → Gemini fallback** — verifies the primary LLM path is tried first and Gemini is only invoked on failure
+- **Gemini's own multi-model candidate chain** — verifies it retries once per model, then moves to the next candidate on any error (404 retired model, empty response, rate limit), and only raises once every candidate is exhausted
+- **DuckDuckGo rate-limit backoff** — verifies retry-then-succeed and graceful degradation (falls back to knowledge-base-only results) when retries are exhausted
+- **Knowledge base build** — verifies the cost-control skip-if-already-populated path, the full fetch→chunk→embed→store path, and that a single failed embedding or empty Wikipedia fetch doesn't abort the whole build
+- **Sources footer generation** — verifies link extraction, de-duplication, and correct messaging when no sources were retrieved
+
+```bash
+pip install -r requirements-dev.txt
+pytest --cov=. --cov-report=term-missing
+```
+
+### Containerization
+The app is packaged as a Docker image with a persisted volume for the ChromaDB store (so the knowledge base survives container restarts instead of re-fetching and re-embedding all 17 SDGs on every cold start), and a healthcheck against Streamlit's own health endpoint.
+
+```bash
+# Build & run directly
+docker build -t greenmind-ai .
+docker run -p 8501:8501 -e GEMINI_API_KEY=... -e HF_TOKEN=... greenmind-ai
+
+# Or via docker-compose (reads GEMINI_API_KEY / HF_TOKEN from your shell env or a .env file)
+docker compose up --build
+```
+
+### CI/CD
+Every push and pull request to `main` runs the full test suite on **Python 3.11 and 3.12** in parallel, uploads a coverage report as a build artifact, and — only if tests pass — runs a Docker build sanity check to catch any container-breaking change before it merges. See [`.github/workflows/ci.yml`](.github/workflows/ci.yml).
+
+### A note on scale
+The current architecture is intentionally simple (single Streamlit process, embedded ChromaDB), which is the right choice for a portfolio/demo tool but has a clear ceiling. The first thing to break under real concurrent load would be the **vector store and LLM inference layer** — ChromaDB's persistent client isn't built for many simultaneous writers, and both Granite and Gemini have per-key rate limits that a shared single key will hit quickly with concurrent users. A production version would move the knowledge base behind a dedicated vector DB service (e.g. a hosted Chroma/Qdrant/pgvector instance instead of an embedded local client), put a request queue in front of LLM calls to smooth out bursts, and cache repeated queries (many sustainability questions are near-duplicates) instead of re-running the full 4-agent pipeline every time.
 
 ---
 
@@ -250,6 +307,24 @@ greenmind-ai/
 ├── config.py               # API keys, model names, SDG topics, constants
 │
 ├── DECISIONS.md            # Every technical decision explained with trade-offs
+│
+├── tests/                  # 48 unit tests, 99% coverage (see Testing section)
+│   ├── conftest.py
+│   ├── test_agents.py
+│   ├── test_config.py
+│   ├── test_knowledge_base.py
+│   ├── test_orchestrator.py
+│   └── test_web_search.py
+│
+├── .github/workflows/
+│   └── ci.yml               # Test + Docker build on every push/PR
+│
+├── Dockerfile               # Containerized deployment
+├── docker-compose.yml       # Local dev with persisted volume
+├── .dockerignore
+├── pytest.ini
+├── .coveragerc
+├── requirements-dev.txt     # requirements.txt + pytest/pytest-cov/pytest-mock
 │
 ├── data/                   # Auto-created, ignored by Git
 │   └── greenmind_db/       # Persistent ChromaDB vector store
@@ -365,7 +440,7 @@ IBM Granite was chosen for its **enterprise-grade reliability**, **responsible A
 ## 👨‍💻 Author
 
 **Deepanshu Meena**
-B.Tech Software Engineering, Delhi Technological University (DTU) · Roll No: 23/SE/048/052
+B.Tech Software Engineering, Delhi Technological University (DTU)
 
 [![Email](https://img.shields.io/badge/Email-deepanshumeena545@gmail.com-red?style=flat-square&logo=gmail)](mailto:deepanshumeena545@gmail.com)
 [![LinkedIn](https://img.shields.io/badge/LinkedIn-Connect-blue?style=flat-square&logo=linkedin)](https://linkedin.com/in/YOUR_PROFILE)

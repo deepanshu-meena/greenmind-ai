@@ -46,12 +46,6 @@ st.markdown("""
         color: #00c853; letter-spacing: 1px; text-transform: uppercase;
     }
 
-    /* Report box */
-    .report-box {
-        background: #1b2d3e; border: 1px solid #00c853;
-        border-radius: 12px; padding: 1.5rem 2rem; margin-top: 1rem;
-    }
-
     /* Metric cards */
     .metric-row { display: flex; gap: 1rem; margin-bottom: 1rem; }
     .metric-card {
@@ -166,7 +160,12 @@ if run_btn and query.strip():
         try:
             collection = load_knowledge_base(gemini_key)
         except Exception as e:
-            st.error(f"Knowledge base error: {e}")
+            st.error(
+                f"Knowledge base error: {e}\n\n"
+                "This is almost always an invalid/expired Gemini API key "
+                "(get a fresh one free at aistudio.google.com/apikey), "
+                "or a temporary Google API outage — try again in a minute."
+            )
             st.stop()
 
     # Agent pipeline with live status updates
@@ -186,7 +185,13 @@ if run_btn and query.strip():
                 status_callback = update_status,
             )
         except Exception as e:
-            st.error(f"Pipeline error: {e}")
+            st.error(
+                f"Pipeline error: {e}\n\n"
+                "GreenMind already auto-switches across several Gemini "
+                "models before giving up, so this usually means the Gemini "
+                "API key is invalid/missing rather than a single model "
+                "being unavailable. Double-check the key in the sidebar."
+            )
             st.stop()
 
     status_box.empty()
@@ -194,7 +199,12 @@ if run_btn and query.strip():
     # ── Metrics Row ──────────────────────────────────────────
     m1, m2, m3, m4 = st.columns(4)
     with m1:
-        st.metric("🤖 LLM Used", "IBM Granite" if hf_token else "Gemini")
+        st.metric(
+            "🤖 LLM Used",
+            "IBM Granite*" if hf_token else "Gemini",
+            help="*Falls back automatically to Gemini for any step where "
+                 "Granite is unavailable via HuggingFace.",
+        )
     with m2:
         st.metric("📚 RAG Chunks", "Retrieved ✅")
     with m3:
@@ -221,15 +231,27 @@ if run_btn and query.strip():
 
     # ── Final Report ─────────────────────────────────────────
     st.markdown("### 📋 SDG Intelligence Report")
-    st.markdown(
-        f'<div class="report-box">{result["report"]}</div>',
-        unsafe_allow_html=True,
-    )
+    # NOTE: Wrapping multi-line markdown inside a raw <div ...>…</div> via
+    # unsafe_allow_html is a long-standing Streamlit rendering gotcha
+    # (streamlit/streamlit#859) — content after the first line can render
+    # as literal "##"/"**" text instead of being parsed as markdown,
+    # because the whole block is swallowed as one raw-HTML block. A
+    # bordered container avoids that entirely and keeps normal markdown
+    # rendering (headers, bold, code fences, etc.) fully intact.
+    with st.container(border=True):
+        st.markdown(result["report"])
+
+    # Full downloadable report includes a sources/provenance footer so the
+    # .md file is self-contained even outside the Streamlit UI.
+    full_report = result["report"] + result.get("sources_footer", "")
+
+    with st.expander("📎 Sources & Report Provenance", expanded=False):
+        st.markdown(result.get("sources_footer", "_No source metadata available._"))
 
     # Download button
     st.download_button(
         label="⬇️ Download Report",
-        data=result["report"],
+        data=full_report,
         file_name="greenmind_report.md",
         mime="text/markdown",
     )

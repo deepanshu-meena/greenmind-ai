@@ -6,10 +6,12 @@ chunks them, embeds with Gemini, stores in ChromaDB.
 
 import requests
 import chromadb
-import google.generativeai as genai
+from google import genai
+from google.genai import types
 from config import (
     SDG_TOPICS, CHROMA_PATH, COLLECTION_NAME,
-    CHUNK_SIZE, CHUNK_OVERLAP, TOP_K, EMBEDDING_MODEL
+    CHUNK_SIZE, CHUNK_OVERLAP, TOP_K,
+    EMBEDDING_MODEL, EMBEDDING_OUTPUT_DIM,
 )
 
 
@@ -47,15 +49,24 @@ def chunk_text(text: str) -> list[str]:
     return chunks
 
 
-def get_embedding(text: str, api_key: str) -> list[float]:
-    """Embed a single text string with Gemini."""
-    genai.configure(api_key=api_key)
-    result = genai.embed_content(
+def get_embedding(text: str, api_key: str, task_type: str = "RETRIEVAL_DOCUMENT") -> list[float]:
+    """
+    Embed a single text string with Gemini (gemini-embedding-001 via
+    the google-genai SDK). Use task_type="RETRIEVAL_DOCUMENT" when
+    embedding knowledge-base chunks and "RETRIEVAL_QUERY" when
+    embedding the user's question — this materially improves
+    retrieval quality.
+    """
+    client = genai.Client(api_key=api_key)
+    result = client.models.embed_content(
         model=EMBEDDING_MODEL,
-        content=text[:2000],
-        task_type="retrieval_document",
+        contents=text[:2000],
+        config=types.EmbedContentConfig(
+            task_type=task_type,
+            output_dimensionality=EMBEDDING_OUTPUT_DIM,
+        ),
     )
-    return result["embedding"]
+    return result.embeddings[0].values
 
 
 # ── Public API ───────────────────────────────────────────────
@@ -87,7 +98,7 @@ def build_knowledge_base(api_key: str, progress_callback=None) -> chromadb.Colle
         chunks = chunk_text(text)
         for c_idx, chunk in enumerate(chunks):
             try:
-                emb = get_embedding(chunk, api_key)
+                emb = get_embedding(chunk, api_key, task_type="RETRIEVAL_DOCUMENT")
                 collection.add(
                     documents=[chunk],
                     embeddings=[emb],
@@ -117,7 +128,7 @@ def query_knowledge_base(collection: chromadb.Collection,
         return "Knowledge base is empty."
 
     try:
-        q_emb    = get_embedding(query, api_key)
+        q_emb    = get_embedding(query, api_key, task_type="RETRIEVAL_QUERY")
         results  = collection.query(
             query_embeddings=[q_emb],
             n_results=min(TOP_K, collection.count()),
