@@ -450,6 +450,6 @@ B.Tech Software Engineering, Delhi Technological University (DTU)
 
 <div align="center">
 <strong>🌍 Built for a Sustainable Future · Powered by IBM Granite & Agentic AI</strong><br>
-<em>1M1B × IBM SkillsBuild AI for Sustainability Internship | AICTE 2026</em><br>
+<em>1M1B × IBM SkillsBuild AI for Sustainability Internship | </em><br>
 <em>Primary SDG: SDG 13 — Climate Action</em>
 </div>
