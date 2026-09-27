@@ -443,13 +443,13 @@ IBM Granite was chosen for its **enterprise-grade reliability**, **responsible A
 B.Tech Software Engineering, Delhi Technological University (DTU)
 
 [![Email](https://img.shields.io/badge/Email-deepanshumeena545@gmail.com-red?style=flat-square&logo=gmail)](mailto:deepanshumeena545@gmail.com)
-[![LinkedIn](https://img.shields.io/badge/LinkedIn-Connect-blue?style=flat-square&logo=linkedin)](https://linkedin.com/in/YOUR_PROFILE)
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-Connect-blue?style=flat-square&logo=linkedin)](https://linkedin.com/in/deepanshu-meena-)
 [![GitHub](https://img.shields.io/badge/GitHub-Follow-black?style=flat-square&logo=github)](https://github.com/deepanshu-meena)
 
 ---
 
 <div align="center">
 <strong>🌍 Built for a Sustainable Future · Powered by IBM Granite & Agentic AI</strong><br>
-<em>1M1B × IBM SkillsBuild AI for Sustainability Internship | </em><br>
+<em>1M1B × IBM SkillsBuild AI for Sustainability Internship </em><br>
 <em>Primary SDG: SDG 13 — Climate Action</em>
 </div>
